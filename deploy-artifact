@@ -4,7 +4,7 @@ set -euo pipefail
 [ -v BASE_DIR ] || BASE_DIR="/app"
 [ -v INIT_DIR ] || INIT_DIR="${BASE_DIR}/init"
 [ -v FORCE_HASHES ] || FORCE_HASHES="false"
-[ -v DEPL_URL ] || DEPL_URL="http://app-deploy"
+[ -v DEPL_URL ] || DEPL_URL="http://app-artifacts"
 
 case "${FORCE_HASHES,,}" in
 	true | t | yes | y | 1 | enabled | enable | en | on ) FORCE_HASHES="true" ;;
