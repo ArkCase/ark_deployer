@@ -74,7 +74,7 @@ ARTIFACT_NAME="${ARTIFACT##*/}"
 IFS="/" read -a PARTS <<< "${ARTIFACT}"
 ENCODED_ARTIFACT=""
 for P in "${PARTS[@]}" ; do
-	[ -z "${ENCODED_ARTIFACT}" ] || ARTIFACT+="/"
+	[ -z "${ENCODED_ARTIFACT}" ] || ENCODED_ARTIFACT+="/"
 	ENCODED_ARTIFACT+="$(echo -n "${P}" | jq -sRr @uri)"
 done
 
