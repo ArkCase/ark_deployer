@@ -3,16 +3,16 @@
 set -euo pipefail
 
 say() {
-	${VERBOSE} || echo -e "$(date -Ins -u): ${@}"
+	${QUIET} || echo -e "$(date -Ins -u): ${@}"
 }
 
 [ -v DEPL_URL ] || DEPL_URL="http://app-artifacts"
 [ -v WAIT_MAX ] || WAIT_MAX=30
-[ -v VERBOSE ] || VERBOSE="false"
+[ -v QUIET ] || QUIET="true"
 
-case "${VERBOSE,,}" in
-	true | t | yes | y | 1 | on | en | enable | enabled ) VERBOSE="true" ;;
-	* ) VERBOSE="false" ;;
+case "${QUIET,,}" in
+	true | t | yes | y | 1 | on | en | enable | enabled ) QUIET="true" ;;
+	* ) QUIET="false" ;;
 esac
 
 [[ "${WAIT_MAX}" =~ ^[1-9][0-9]*$ ]] || WAIT_MAX=30
