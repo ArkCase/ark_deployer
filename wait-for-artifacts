@@ -21,12 +21,20 @@ START="$(date +%s)"
 say "Waiting for artifacts to come online at [${DEPL_URL}] (max wait is ${WAIT_MAX} seconds)..."
 while true ; do
 	HTTP_CODE="$(curl --connect-timeout 0.1 -kL -s -o /dev/null -w "%{http_code}" "${DEPL_URL}/api/1/?cmd=list")" || true
+
+	# Make sure it's a real number, and make sure we don't puke out here
+	HTTP_CODE="$(( 10#${HTTP_CODE} ))" || true
+
 	if [ ${HTTP_CODE} -ge 200 ] && [ ${HTTP_CODE} -lt 300 ] ; then
 		say "Artifacts are online!"
 		exit 0
 	fi
+
 	NOW="$(date +%s)"
-	[ $(( NOW - START )) -ge ${WAIT_MAX} ] && break
+
+	# In case this evaluates to 0, to avoid puking out here
+	DURATION=$(( NOW - START )) || true
+	[ ${DURATION} -lt ${WAIT_MAX} ] || break
 done
 say "Artifacts failed to come online after ${WAIT_MAX} seconds"
 exit 1
