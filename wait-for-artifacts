@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -euo pipefail
+
+say() {
+	echo -e "$(date -Ins -u): ${@}"
+}
+
+[ -v DEPL_URL ] || DEPL_URL="http://app-artifacts"
+[ -v WAIT_MAX ] || WAIT_MAX=30
+
+[[ "${WAIT_MAX}" =~ ^[1-9][0-9]*$ ]] || WAIT_MAX=30
+
+START="$(date +%s)"
+say "Waiting for artifacts to come online at [${DEPL_URL}] (max wait is ${WAIT_MAX} seconds)..."
+while true ; do
+	HTTP_CODE="$(curl --connect-timeout 0.1 -kL -s -o /dev/null -w "%{http_code}" "${DEPL_URL}/api/1/?cmd=list")" || true
+	if [ ${HTTP_CODE} -ge 200 ] && [ ${HTTP_CODE} -lt 300 ] ; then
+		say "Artifacts are online!"
+		exit 0
+	fi
+	NOW="$(date +%s)"
+	[ $(( NOW - START )) -ge ${WAIT_MAX} ] && break
+done
+say "Artifacts failed to come online after ${WAIT_MAX} seconds"
+exit 1

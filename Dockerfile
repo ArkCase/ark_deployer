@@ -14,7 +14,7 @@ ARG BASE_REPO="arkcase/base"
 ARG BASE_TAG="8.7.0"
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.0.1"
+ARG VER="1.0.2"
 ARG BLD="01"
 
 FROM "${PUBLIC_REGISTRY}/${BASE_REPO}:${BASE_TAG}"
@@ -82,11 +82,13 @@ RUN yum -y update && \
     rm -rf /tmp/*
 
 COPY --chown=root:root \
+    "wait-for-artifacts" \
     "list-artifacts" \
     "list-categories" \
     "deploy-artifact" \
     "/usr/local/bin/"
 RUN chmod a=rx \
+        "/usr/local/bin/wait-for-artifacts" \
         "/usr/local/bin/list-artifacts" \
         "/usr/local/bin/list-categories" \
         "/usr/local/bin/deploy-artifact"

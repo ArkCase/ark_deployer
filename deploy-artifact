@@ -90,6 +90,8 @@ TARGET_TMP_DIR="${TARGET_DIR}/.deploy.$(uuidgen)"
 mkdir -p "${TARGET_TMP_DIR}" || fail "Failed to create the temporary work directory"
 TARGET_TMP_FILE="${TARGET_TMP_DIR}/${ARTIFACT_NAME}"
 
+wait-for-artifacts || fail "Timed out waiting for the artifacts to become available at [${DEPL_URL}]"
+
 # Check for artifact availability
 ARTIFACT_URL="${DEPL_URL}/${ENCODED_ARTIFACT}"
 VERSION_URL="${ARTIFACT_URL}.ver"
