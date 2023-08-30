@@ -1,8 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-[ -v DEPL_URL ] || DEPL_URL="http://app-artifacts"
-
 say() {
 	echo -e "$(date -u -Ins): ${@}"
 }

@@ -6,7 +6,6 @@ say() {
 	${QUIET} || echo -e "$(date -Ins -u): ${@}"
 }
 
-[ -v DEPL_URL ] || DEPL_URL="http://app-artifacts"
 [ -v WAIT_MAX ] || WAIT_MAX=30
 [ -v QUIET ] || QUIET="true"
 

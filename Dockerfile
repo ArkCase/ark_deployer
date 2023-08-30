@@ -14,8 +14,8 @@ ARG BASE_REPO="arkcase/base"
 ARG BASE_TAG="8.8-02"
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.1.0"
-ARG BLD="02"
+ARG VER="1.1.1"
+ARG BLD="01"
 
 FROM "${PUBLIC_REGISTRY}/${BASE_REPO}:${BASE_TAG}"
 
@@ -91,6 +91,8 @@ RUN chmod a=rx \
         "/usr/local/bin/list-artifacts" \
         "/usr/local/bin/list-categories" \
         "/usr/local/bin/deploy-artifact"
+
+ENV DEPL_URL="https://app-artifacts"
 
 USER root
 WORKDIR "${DEPL_DIR}"
