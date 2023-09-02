@@ -42,7 +42,7 @@ URL="${DEPL_URL}/api/1/${TARGET_PATH}"
 
 wait-for-artifacts || fail "Timed out waiting for the artifacts to become available at [${DEPL_URL}]"
 
-JSON="$(curl -kL -s "${URL}?cmd=list")"
+JSON="$(curl -L -s "${URL}?cmd=list")"
 
 # Is the request successful?
 STATUS="$(jq -r .rc <<< "${JSON}")"

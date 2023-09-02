@@ -30,7 +30,7 @@ download() {
 	local URL="${1}"
 	local TGT="${2}"
 	# The artifact is there, so pull it into the destination
-	curl -kL --fail -s -o "${TGT}" "${URL}" || fail "Failed to download the artifact from [${URL}] into [${TGT}]"
+	curl -L --fail -s -o "${TGT}" "${URL}" || fail "Failed to download the artifact from [${URL}] into [${TGT}]"
 }
 
 usage() {
@@ -96,13 +96,13 @@ ARTIFACT_URL="${DEPL_URL}/${ENCODED_ARTIFACT}"
 VERSION_URL="${ARTIFACT_URL}.ver"
 CHECKSUM_URL="${ARTIFACT_URL}.sum"
 CHECK_URL="${DEPL_URL}/api/1/${ENCODED_ARTIFACT}?cmd=info"
-HTTP_CODE="$(curl -kL -s -o /dev/null -w "%{http_code}" "${CHECK_URL}")"
+HTTP_CODE="$(curl -L -s -o /dev/null -w "%{http_code}" "${CHECK_URL}")"
 [ ${HTTP_CODE} -lt 400 ] || fail "The artifact [${ARTIFACT}] is not available for deployment (HTTP CODE = ${HTTP_CODE} / ${CHECK_URL})"
 
 # Same with the version and the checksum, but it's OK if these aren't there b/c
 # we can come up with defaults
 
-NEW_VER="$(curl -kL -s --fail "${VERSION_URL}" 2>/dev/null || true)"
+NEW_VER="$(curl -L -s --fail "${VERSION_URL}" 2>/dev/null || true)"
 grep -q '<!DOCTYPE html>' <<< "${NEW_VER}" && NEW_VER=""
 [ -n "${NEW_VER}" ] || NEW_VER="(unknown)"
 
@@ -110,7 +110,7 @@ grep -q '<!DOCTYPE html>' <<< "${NEW_VER}" && NEW_VER=""
 SUM=""
 
 # If we're not forcing a local hash computation, we try to download the cached value
-${FORCE_HASHES} || SUM="$(curl -kL -s --fail "${CHECKSUM_URL}" 2>/dev/null || true)"
+${FORCE_HASHES} || SUM="$(curl -L -s --fail "${CHECKSUM_URL}" 2>/dev/null || true)"
 
 # If the sum is invalid, or we're requesting local checksum computation, we do just that
 if [[ ! "${SUM}" =~ ^[0-9a-f]{64}$ ]] ; then
