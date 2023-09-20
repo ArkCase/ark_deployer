@@ -14,7 +14,7 @@ case "${QUIET,,}" in
 	* ) QUIET="false" ;;
 esac
 
-[[ "${WAIT_MAX}" =~ ^[1-9][0-9]*$ ]] || WAIT_MAX=30
+[[ "${WAIT_MAX}" =~ ^[1-9][0-9]*$ ]] || WAIT_MAX=900
 
 START="$(date +%s)"
 say "Waiting for artifacts to come online at [${DEPL_URL}] (max wait is ${WAIT_MAX} seconds)..."
