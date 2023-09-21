@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -euo pipefail
+
+timestamp() {
+	date -Ins -u
+}
+
+say() {
+	echo -e "$(timestamp): ${@}"
+}
+
+fail() {
+	say "${@}" 1>&2
+	exit ${EXIT_CODE:-1}
+}
+
+[ -v DEPLOYER ] || DEPLOYER="/deploy"
+
+[ -e "${DEPLOYER}" ] || fail "No deployer script [${DEPLOYER}] was found"
+[ -f "${DEPLOYER}" ] || fail "The deployer script path [${DEPLOYER}] is not a regular file"
+[ -r "${DEPLOYER}" ] || fail "The deployer script [${DEPLOYER}] is not readable"
+[ -x "${DEPLOYER}" ] || fail "The deployer script [${DEPLOYER}] is not executable"
+
+# First, initialize the SSL stuff
+[ SSL_DIR ] || SSL_DIR="/.ssl"
+acme-init
+
+say "Launching the deployer script at [${DEPLOYER}]..."
+exec "${DEPLOYER}"
