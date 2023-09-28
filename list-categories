@@ -48,7 +48,7 @@ JSON="$(curl -L -s "${URL}?cmd=list")"
 STATUS="$(jq -r .rc <<< "${JSON}")"
 
 # If the directory isn't found, just quit without output
-[ ${STATUS} == 404 ] && exit 1
+[ ${STATUS} == 404 ] && exit 0
 
 # If it's something else, then explode loudly while reporting the issue
 [ ${STATUS} == 200 ] || fail "Failed to list the contents of [${TARGET_PATH}] (STATUS=${STATUS}):\n${JSON}"
