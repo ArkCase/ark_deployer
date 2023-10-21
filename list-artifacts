@@ -33,8 +33,8 @@ TARGET_PATH="$(echo -n "${TARGET_PATH}" | sed -e 's;/+;/;g')"
 IFS="/" read -a PARTS <<< "${TARGET_PATH}"
 TARGET_PATH=""
 for P in "${PARTS[@]}" ; do
-    [ -z "${TARGET_PATH}" ] || TARGET_PATH+="/"
-    TARGET_PATH+="$(echo -n "${P}" | jq -sRr @uri)"
+	[ -z "${TARGET_PATH}" ] || TARGET_PATH+="/"
+	TARGET_PATH+="$(echo -n "${P}" | jq -sRr @uri)"
 done
 
 # List the artifacts or directories in the given URL
@@ -56,7 +56,5 @@ STATUS="$(jq -r .rc <<< "${JSON}")"
 # List the files contained within, including the path prefix
 [ -n "${TARGET_PATH}" ] && TARGET_PATH="/${TARGET_PATH}"
 jq -r ".data.files[] | .name" <<< "${JSON}" | \
-	egrep -vi '\.ver' | \
-	egrep -vi '\.sum' | \
-	sed -e "s;^;${TARGET_PATH}/;g" | \
+	sed -e '/\.sum$/d' -e '/\.ver$/d' -e "s;^;${TARGET_PATH}/;g" | \
 	sort -u
