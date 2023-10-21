@@ -56,5 +56,8 @@ STATUS="$(jq -r .rc <<< "${JSON}")"
 # List the files contained within, including the path prefix
 [ -n "${TARGET_PATH}" ] && TARGET_PATH="/${TARGET_PATH}"
 jq -r ".data.files[] | .name" <<< "${JSON}" | \
-	sed -e '/\.sum$/d' -e '/\.ver$/d' -e "s;^;${TARGET_PATH}/;g" | \
+	sed \
+		-e '/\.sum$/d' \
+		-e '/\.ver$/d' \
+		-e "s;^;${TARGET_PATH}/;g" | \
 	sort -u
