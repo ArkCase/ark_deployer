@@ -10,14 +10,15 @@
 # Basic Parameters
 #
 ARG PUBLIC_REGISTRY="public.ecr.aws"
-ARG BASE_REPO="arkcase/base"
-ARG BASE_TAG="8-02"
 ARG ARCH="amd64"
 ARG OS="linux"
 ARG VER="1.1.4"
-ARG BLD="01"
 
-FROM "${PUBLIC_REGISTRY}/${BASE_REPO}:${BASE_TAG}"
+ARG BASE_REPO="arkcase/base"
+ARG BASE_VER="8"
+ARG BASE_IMG="${PUBLIC_REGISTRY}/${BASE_REPO}:${BASE_VER}"
+
+FROM "${BASE_IMG}"
 
 #
 # Basic Parameters
@@ -25,7 +26,6 @@ FROM "${PUBLIC_REGISTRY}/${BASE_REPO}:${BASE_TAG}"
 ARG ARCH
 ARG OS
 ARG VER
-ARG BLD
 ARG BASE_DIR="/app"
 ARG INIT_DIR="${BASE_DIR}/init"
 ARG DEPL_DIR="${BASE_DIR}/depl"
@@ -33,7 +33,7 @@ ARG DEPL_DIR="${BASE_DIR}/depl"
 LABEL ORG="ArkCase LLC" \
       MAINTAINER="Armedia Devops Team <devops@armedia.com>" \
       APP="ArkCase Deployer Image" \
-      VERSION="${VER}-${BLD}"
+      VERSION="${VER}"
 
 #
 # Environment variables
