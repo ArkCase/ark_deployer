@@ -12,7 +12,7 @@
 ARG PUBLIC_REGISTRY="public.ecr.aws"
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.1.4"
+ARG VER="1.2.0"
 
 ARG BASE_REPO="arkcase/base"
 ARG BASE_VER="8"
