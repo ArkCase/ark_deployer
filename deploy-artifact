@@ -4,10 +4,16 @@ set -euo pipefail
 [ -v BASE_DIR ] || BASE_DIR="/app"
 [ -v INIT_DIR ] || INIT_DIR="${BASE_DIR}/init"
 [ -v FORCE_HASHES ] || FORCE_HASHES="false"
+[ -v FORCE_DEPLOY ] || FORCE_DEPLOY="false"
 
 case "${FORCE_HASHES,,}" in
 	true | t | yes | y | 1 | enabled | enable | en | on ) FORCE_HASHES="true" ;;
 	* ) FORCE_HASHES="false" ;;
+esac
+
+case "${FORCE_DEPLOY,,}" in
+	true | t | yes | y | 1 | enabled | enable | en | on ) FORCE_DEPLOY="true" ;;
+	* ) FORCE_DEPLOY="false" ;;
 esac
 
 # Make sure we run cleanup on exit
@@ -123,37 +129,42 @@ fi
 # Always the checksum in lowercase
 SUM="${SUM,,}"
 
-# This is the file track marker where we'll track the deployment status
-MARKER_FILE="${TARGET_DIR}/.version"
-if [ -e "${MARKER_FILE}" ] ; then
-	OLD_DATE=""
-	OLD_ARTIFACT=""
-	OLD_VER=""
-	OLD_SUM="<none>"
-	EXISTING_LOADED="false"
-
+# Do we need to redeploy, regardless?
+if ! "${FORCE_DEPLOY}" ; then
+	# This is the file track marker where we'll track the deployment status
+	MARKER_FILE="${TARGET_DIR}/.version"
 	if [ -e "${MARKER_FILE}" ] ; then
-		# We explicitly don't call sort b/c we want to get the last record on the list,
-		# regardless of its contents
-		REST=""
-		# We use "|| true" at the end b/c if the output is empty then we have nothing to read
-		# and this will cause the script to exit
-		IFS="|" read OLD_DATE OLD_VER OLD_SUM OLD_ARTIFACT < <(sed -e '/^\s*#.*$/d' -e '/^\s*$/d' < "${MARKER_FILE}" | egrep "\|[0-9a-fA-F]{64}\|${ARTIFACT}$" | tail -1) || true
-		[ -n "${OLD_SUM}" ] && EXISTING_LOADED="true"
-		OLD_SUM="${OLD_SUM,,}"
-	fi
+		OLD_DATE=""
+		OLD_ARTIFACT=""
+		OLD_VER=""
+		OLD_SUM="<none>"
+		EXISTING_LOADED="false"
 
-	if "${EXISTING_LOADED}" ; then
-		if [ "${SUM}" == "${OLD_SUM}" ] ; then
-			say "The artifact [${ARTIFACT}] appears to already be deployed into [${TARGET_DIR}] since ${OLD_DATE} (version = ${OLD_VER}, verified by checksum)."
-			exit 0
+		if [ -e "${MARKER_FILE}" ] ; then
+			# We explicitly don't call sort b/c we want to get the last record on the list,
+			# regardless of its contents
+			REST=""
+			# We use "|| true" at the end b/c if the output is empty then we have nothing to read
+			# and this will cause the script to exit
+			IFS="|" read OLD_DATE OLD_VER OLD_SUM OLD_ARTIFACT < <(sed -e '/^\s*#.*$/d' -e '/^\s*$/d' < "${MARKER_FILE}" | egrep "\|[0-9a-fA-F]{64}\|${ARTIFACT}$" | tail -1) || true
+			[ -n "${OLD_SUM}" ] && EXISTING_LOADED="true"
+			OLD_SUM="${OLD_SUM,,}"
 		fi
-		say "File content change detected for [${ARTIFACT}] through file checksum:\n\tEXISTING: [${OLD_VER} = ${OLD_SUM}]\n\tINCOMING: [${NEW_VER} = ${SUM}]"
+
+		if "${EXISTING_LOADED}" ; then
+			if [ "${SUM}" == "${OLD_SUM}" ] ; then
+				say "The artifact [${ARTIFACT}] appears to already be deployed into [${TARGET_DIR}] since ${OLD_DATE} (version = ${OLD_VER}, verified by checksum)."
+				exit 0
+			fi
+			say "File content change detected for [${ARTIFACT}] through file checksum:\n\tEXISTING: [${OLD_VER} = ${OLD_SUM}]\n\tINCOMING: [${NEW_VER} = ${SUM}]"
+		else
+			say "Couldn't find a prior installation record for [${ARTIFACT}], deploying the file:\n\tINCOMING: [${NEW_VER} = ${SUM}]"
+		fi
 	else
-		say "Couldn't find a prior installation record for [${ARTIFACT}], deploying the file:\n\tINCOMING: [${NEW_VER} = ${SUM}]"
+		say "Version tracking hasn't yet begun for ${TARGET_DIR} (the marker file [${MARKER_FILE}] is missing)"
 	fi
 else
-	say "Version tracking hasn't yet begun for ${TARGET_DIR} (the marker file [${MARKER_FILE}] is missing)"
+	say "Deployment is forced, regardless of prior deployments"
 fi
 
 # We delay the download as much as possible, to avoid downloading if the checksum
