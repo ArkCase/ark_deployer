@@ -130,9 +130,9 @@ fi
 SUM="${SUM,,}"
 
 # Do we need to redeploy, regardless?
+# This is the file track marker where we'll track the deployment status
+MARKER_FILE="${TARGET_DIR}/.version"
 if ! "${FORCE_DEPLOY}" ; then
-	# This is the file track marker where we'll track the deployment status
-	MARKER_FILE="${TARGET_DIR}/.version"
 	if [ -e "${MARKER_FILE}" ] ; then
 		OLD_DATE=""
 		OLD_ARTIFACT=""
