@@ -1,20 +1,9 @@
 #!/bin/bash
 set -euo pipefail
+. /.functions
 
-say() {
-	echo -e "$(date -u -Ins): ${@}"
-}
-
-fail() {
-	say "${@}" 1>&2
-	exit ${EXIT_CODE:-1}
-}
-
-cleanup() {
-	[ -v OUT_DIR ] && [ -d "${OUT_DIR}" ] && rm -rf "${OUT_DIR}" &>/dev/null
-}
-
-usage() {
+usage()
+{
 	echo -e "usage: ${BASH_SOURCE:-${0}} [category-path]" 1>&2
 	exit 1
 }

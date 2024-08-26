@@ -1,45 +1,28 @@
 #!/bin/bash
 set -euo pipefail
+. /.functions
 
-[ -v BASE_DIR ] || BASE_DIR="/app"
-[ -v INIT_DIR ] || INIT_DIR="${BASE_DIR}/init"
-[ -v FORCE_HASHES ] || FORCE_HASHES="false"
-[ -v FORCE_DEPLOY ] || FORCE_DEPLOY="false"
+set_or_default BASE_DIR "/app"
+set_or_default INIT_DIR "${BASE_DIR}/init"
 
-case "${FORCE_HASHES,,}" in
-	true | t | yes | y | 1 | enabled | enable | en | on ) FORCE_HASHES="true" ;;
-	* ) FORCE_HASHES="false" ;;
-esac
+set_as_default FORCE_HASHES
+set_as_default FORCE_DEPLOY
 
-case "${FORCE_DEPLOY,,}" in
-	true | t | yes | y | 1 | enabled | enable | en | on ) FORCE_DEPLOY="true" ;;
-	* ) FORCE_DEPLOY="false" ;;
-esac
-
-# Make sure we run cleanup on exit
-trap cleanup EXIT
-
-say() {
-	echo -e "$(date -u -Ins): ${@}"
+cleanup()
+{
+	rm -rf "${TARGET_TMP_DIR}" &>/dev/null
 }
 
-fail() {
-	say "${@}" 1>&2
-	exit ${EXIT_CODE:-1}
-}
-
-cleanup() {
-	[ -v TARGET_TMP_DIR ] && [ -n "${TARGET_TMP_DIR}" ] && [ -d "${TARGET_TMP_DIR}" ] && rm -rf "${TARGET_TMP_DIR}" &>/dev/null
-}
-
-download() {
+download()
+{
 	local URL="${1}"
 	local TGT="${2}"
 	# The artifact is there, so pull it into the destination
 	curl -L --fail -s -o "${TGT}" "${URL}" || fail "Failed to download the artifact from [${URL}] into [${TGT}]"
 }
 
-usage() {
+usage()
+{
 	{
 		echo -e "usage: ${BASH_SOURCE:-${0}} operation artifact targetDir"
 		echo -e ""
@@ -84,16 +67,15 @@ for P in "${PARTS[@]}" ; do
 done
 
 TARGET_DIR="${3}"
-[ -e "${TARGET_DIR}" ] || fail "The target directory [${TARGET_DIR}] does not exist"
-[ -d "${TARGET_DIR}" ] || fail "The target path [${TARGET_DIR}] is not a directory"
-[ -r "${TARGET_DIR}" ] || fail "The target path [${TARGET_DIR}] is not readable"
-[ -w "${TARGET_DIR}" ] || fail "The target path [${TARGET_DIR}] is not writable"
-[ -x "${TARGET_DIR}" ] || fail "The target path [${TARGET_DIR}] is not executable"
+require_dir_readwrite "${TARGET_DIR}"
 TARGET_DIR="$(readlink -f "${TARGET_DIR}")"
 
 TARGET_TMP_DIR="${TARGET_DIR}/.deploy.$(uuidgen)"
 mkdir -p "${TARGET_TMP_DIR}" || fail "Failed to create the temporary work directory"
 TARGET_TMP_FILE="${TARGET_TMP_DIR}/${ARTIFACT_NAME}"
+
+# Make sure we run cleanup on exit
+trap cleanup EXIT
 
 wait-for-artifacts || exit ${?}
 
@@ -153,18 +135,18 @@ if ! "${FORCE_DEPLOY}" ; then
 
 		if "${EXISTING_LOADED}" ; then
 			if [ "${SUM}" == "${OLD_SUM}" ] ; then
-				say "The artifact [${ARTIFACT}] appears to already be deployed into [${TARGET_DIR}] since ${OLD_DATE} (version = ${OLD_VER}, verified by checksum)."
+				ok "The artifact [${ARTIFACT}] appears to already be deployed into [${TARGET_DIR}] since ${OLD_DATE} (version = ${OLD_VER}, verified by checksum)."
 				exit 0
 			fi
-			say "File content change detected for [${ARTIFACT}] through file checksum:\n\tEXISTING: [${OLD_VER} = ${OLD_SUM}]\n\tINCOMING: [${NEW_VER} = ${SUM}]"
+			eyes "File content change detected for [${ARTIFACT}] through file checksum:\n\tEXISTING: [${OLD_VER} = ${OLD_SUM}]\n\tINCOMING: [${NEW_VER} = ${SUM}]"
 		else
-			say "Couldn't find a prior installation record for [${ARTIFACT}], deploying the file:\n\tINCOMING: [${NEW_VER} = ${SUM}]"
+			warn "Couldn't find a prior installation record for [${ARTIFACT}], deploying the file:\n\tINCOMING: [${NEW_VER} = ${SUM}]"
 		fi
 	else
-		say "Version tracking hasn't yet begun for ${TARGET_DIR} (the marker file [${MARKER_FILE}] is missing)"
+		warn "Version tracking hasn't yet begun for ${TARGET_DIR} (the marker file [${MARKER_FILE}] is missing)"
 	fi
 else
-	say "Deployment is forced, regardless of prior deployments"
+	warn "Deployment is forced, regardless of prior deployments"
 fi
 
 # We delay the download as much as possible, to avoid downloading if the checksum

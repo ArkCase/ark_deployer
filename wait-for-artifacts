@@ -1,23 +1,21 @@
 #!/bin/bash
 
 set -euo pipefail
+. /.functions
 
-say() {
-	${QUIET} || echo -e "$(date -Ins -u): ${@}"
+# Override the existing implementation
+say()
+{
+	${QUIET} || echo -e "$(timestamp): ${@}"
 }
 
-[ -v WAIT_MAX ] || WAIT_MAX=30
-[ -v QUIET ] || QUIET="true"
+set_as_boolean QUIET
 
-case "${QUIET,,}" in
-	true | t | yes | y | 1 | on | en | enable | enabled ) QUIET="true" ;;
-	* ) QUIET="false" ;;
-esac
-
+set_or_default WAIT_MAX
 [[ "${WAIT_MAX}" =~ ^[1-9][0-9]*$ ]] || WAIT_MAX=900
 
 START="$(date +%s)"
-say "Waiting for artifacts to come online at [${DEPL_URL}] (max wait is ${WAIT_MAX} seconds)..."
+say "Waiting for artifacts to come online at [${DEPL_URL}] (max wait is $(secs_to_timestr ${WAIT_MAX}))..."
 while true ; do
 	HTTP_CODE="$(curl --connect-timeout 0.1 -kL -s -o /dev/null -w "%{http_code}" "${DEPL_URL}/api/1/?cmd=list")" || true
 
