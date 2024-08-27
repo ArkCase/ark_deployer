@@ -29,7 +29,7 @@ done
 # List the artifacts or directories in the given URL
 URL="${DEPL_URL}/api/1/${TARGET_PATH}"
 
-wait-for-artifacts || fail "Timed out waiting for the artifacts to become available at [${DEPL_URL}]"
+wait-for-artifacts &>/dev/null || fail "Timed out waiting for the artifacts to become available at [${DEPL_URL}]"
 
 JSON="$(curl -L -s "${URL}?cmd=list")"
 
