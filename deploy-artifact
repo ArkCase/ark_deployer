@@ -35,6 +35,11 @@ usage()
 		echo -e "        extract     : unzip the file into targetDir (unzip -o -d ...)"
 		echo -e "        extract-dir : like extract, but create a subdirectory with"
 		echo -e "                      the basename of the file, minus the extension"
+		echo -e ""
+		echo -e "    If the environment variable DEPLOY_UPDATE_MARK is set, a .deployed file"
+		echo -e "    will be created in the target directory (for extract or extract-dir), or"
+		echo -e "    a \${targetDir}/.\${artifact}.deployed file (for copy) to indicate that"
+		echo -e "    the artifact was actually deployed."
 	} 1>&2
 	exit 1
 }
