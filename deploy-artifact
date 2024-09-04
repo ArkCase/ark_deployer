@@ -151,7 +151,7 @@ fi
 # matches and all that (i.e. if we don't need to deploy, we avoid downloading)
 is_file "${TARGET_TMP_FILE}" || download "${ARTIFACT_URL}" "${TARGET_TMP_FILE}"
 
-UPDATE_MARK_FILE=".updated"
+UPDATE_MARK_FILE=".deployed"
 MARK="$(date -u -Ins)|${NEW_VER}|${SUM}|${ARTIFACT}"
 case "${OPERATION,,}" in
 	extract )
