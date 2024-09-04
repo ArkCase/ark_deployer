@@ -151,8 +151,6 @@ fi
 # matches and all that (i.e. if we don't need to deploy, we avoid downloading)
 is_file "${TARGET_TMP_FILE}" || download "${ARTIFACT_URL}" "${TARGET_TMP_FILE}"
 
-set_as_boolean UPDATE_MARK
-
 UPDATE_MARK_FILE=".updated"
 MARK="$(date -u -Ins)|${NEW_VER}|${SUM}|${ARTIFACT}"
 case "${OPERATION,,}" in
@@ -179,7 +177,8 @@ case "${OPERATION,,}" in
 		;;
 esac
 
-if as_boolean "${UPDATE_MARK}" ; then
+set_as_boolean DEPLOY_UPDATE_MARK
+if as_boolean "${DEPLOY_UPDATE_MARK}" ; then
 	eyes "Setting the update marker at [${UPDATE_MARK_FILE}]"
 	echo -n "${MARK}" > "${UPDATE_MARK_FILE}"
 fi
