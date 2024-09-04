@@ -24,17 +24,17 @@ download()
 usage()
 {
 	{
-		echo -e "usage: ${BASH_SOURCE:-${0}} operation artifact targetDir"
+		echo -e "usage: ${BASH_SOURCE:-${0}} operation artifact targetDir [updateMark]"
 		echo -e ""
 		echo -e "    operation  => copy, extract, or extractdir"
 		echo -e "    artifact   => path of the artifact to deploy (from DEPL_URL)"
 		echo -e "    targetDir  => the directory into which to deploy"
 		echo -e ""
 		echo -e "    Operations:"
-		echo -e "        copy       : copy the file verbatim into targetDir"
-		echo -e "        extract    : unzip the file into targetDir (unzip -o -d ...)"
-		echo -e "        extractDir : like extract, but create a subdirectory with"
-		echo -e "                     the basename of the file, minus the extension"
+		echo -e "        copy        : copy the file verbatim into targetDir"
+		echo -e "        extract     : unzip the file into targetDir (unzip -o -d ...)"
+		echo -e "        extract-dir : like extract, but create a subdirectory with"
+		echo -e "                      the basename of the file, minus the extension"
 	} 1>&2
 	exit 1
 }
@@ -98,11 +98,11 @@ grep -q '<!DOCTYPE html>' <<< "${NEW_VER}" && NEW_VER=""
 SUM=""
 
 # If we're not forcing a local hash computation, we try to download the cached value
-${FORCE_HASHES} || SUM="$(curl -L -s --fail "${CHECKSUM_URL}" 2>/dev/null || true)"
+as_boolean "${FORCE_HASHES}" || SUM="$(curl -L -s --fail "${CHECKSUM_URL}" 2>/dev/null || true)"
 
 # If the sum is invalid, or we're requesting local checksum computation, we do just that
 if [[ ! "${SUM}" =~ ^[0-9a-f]{64}$ ]] ; then
-	${FORCE_HASHES} || say "Failed to find the cached checksum for [${ARTIFACT}], or its contents are invalid. Computing it directly..."
+	as_boolean "${FORCE_HASHES}" || say "Failed to find the cached checksum for [${ARTIFACT}], or its contents are invalid. Computing it directly..."
 	download "${ARTIFACT_URL}" "${TARGET_TMP_FILE}"
 	read SUM REST < <(sha256sum "${TARGET_TMP_FILE}" | tr '[:upper:]' '[:lower:]')
 	[[ "${SUM}" =~ ^[0-9a-f]{64}$ ]] || fail "Failed to compute the sha256 checksum for [${ARTIFACT}]"
@@ -114,7 +114,7 @@ SUM="${SUM,,}"
 # Do we need to redeploy, regardless?
 # This is the file track marker where we'll track the deployment status
 MARKER_FILE="${TARGET_DIR}/.version"
-if ! "${FORCE_DEPLOY}" ; then
+if ! as_boolean "${FORCE_DEPLOY}" ; then
 	if [ -e "${MARKER_FILE}" ] ; then
 		OLD_DATE=""
 		OLD_ARTIFACT=""
@@ -122,16 +122,14 @@ if ! "${FORCE_DEPLOY}" ; then
 		OLD_SUM="<none>"
 		EXISTING_LOADED="false"
 
-		if [ -e "${MARKER_FILE}" ] ; then
-			# We explicitly don't call sort b/c we want to get the last record on the list,
-			# regardless of its contents
-			REST=""
-			# We use "|| true" at the end b/c if the output is empty then we have nothing to read
-			# and this will cause the script to exit
-			IFS="|" read OLD_DATE OLD_VER OLD_SUM OLD_ARTIFACT < <(sed -e '/^\s*#.*$/d' -e '/^\s*$/d' < "${MARKER_FILE}" | egrep "\|[0-9a-fA-F]{64}\|${ARTIFACT}$" | tail -1) || true
-			[ -n "${OLD_SUM}" ] && EXISTING_LOADED="true"
-			OLD_SUM="${OLD_SUM,,}"
-		fi
+		# We explicitly don't call sort b/c we want to get the last record on the list,
+		# regardless of its contents
+		REST=""
+		# We use "|| true" at the end b/c if the output is empty then we have nothing to read
+		# and this will cause the script to exit
+		IFS="|" read OLD_DATE OLD_VER OLD_SUM OLD_ARTIFACT < <(sed -e '/^\s*#.*$/d' -e '/^\s*$/d' < "${MARKER_FILE}" | egrep "\|[0-9a-fA-F]{64}\|${ARTIFACT}$" | tail -1) || true
+		[ -n "${OLD_SUM}" ] && EXISTING_LOADED="true"
+		OLD_SUM="${OLD_SUM,,}"
 
 		if "${EXISTING_LOADED}" ; then
 			if [ "${SUM}" == "${OLD_SUM}" ] ; then
@@ -151,21 +149,29 @@ fi
 
 # We delay the download as much as possible, to avoid downloading if the checksum
 # matches and all that (i.e. if we don't need to deploy, we avoid downloading)
-[ -f "${TARGET_TMP_FILE}" ] || download "${ARTIFACT_URL}" "${TARGET_TMP_FILE}"
+is_file "${TARGET_TMP_FILE}" || download "${ARTIFACT_URL}" "${TARGET_TMP_FILE}"
 
-case "${OPERATION}" in
+set_as_boolean UPDATE_MARK
+
+UPDATE_MARK_FILE=".updated"
+MARK="$(date -u -Ins)|${NEW_VER}|${SUM}|${ARTIFACT}"
+case "${OPERATION,,}" in
 	extract )
 		unzip -o -d "${TARGET_DIR}" "${TARGET_TMP_FILE}"
+		UPDATE_MARK_FILE="${TARGET_DIR}/${UPDATE_MARK_FILE}"
 		;;
 
 	extractdir | extract-dir )
 		BASENAME="${ARTIFACT_NAME%.*}"
-		mkdir -p "${TARGET_DIR}/${BASENAME}"
-		unzip -o -d "${TARGET_DIR}/${BASENAME}" "${TARGET_TMP_FILE}"
+		TARGET_DIR+="/${BASENAME}"
+		mkdir -p "${TARGET_DIR}"
+		unzip -o -d "${TARGET_DIR}" "${TARGET_TMP_FILE}"
+		UPDATE_MARK_FILE="${TARGET_DIR}/${UPDATE_MARK_FILE}"
 		;;
 
 	copy )
 		mv -vf "${TARGET_TMP_FILE}" "${TARGET_DIR}/${ARTIFACT_NAME}"
+		UPDATE_MARK_FILE="${TARGET_DIR}/.${ARTIFACT_NAME}${UPDATE_MARK_FILE}"
 		;;
 
 	* )
@@ -173,6 +179,11 @@ case "${OPERATION}" in
 		;;
 esac
 
+if as_boolean "${UPDATE_MARK}" ; then
+	eyes "Setting the update marker at [${UPDATE_MARK_FILE}]"
+	echo -n "${MARK}" > "${UPDATE_MARK_FILE}"
+fi
+
 # Add the marker record for this version
-echo -e "$(date -u -Ins)|${NEW_VER}|${SUM}|${ARTIFACT}" >> "${MARKER_FILE}"
+echo -e "${MARK}" >> "${MARKER_FILE}"
 exit 0
