@@ -9,4 +9,7 @@ wait-for-artifacts &>/dev/null || fail "Timed out waiting for the artifacts to b
 
 JSON="$(curl -fsSL "${URL}")" || fail "Failed to retrieve the global artifact sums (rc = ${?})"
 
+# Verify that it's JSON output
+jq -r <<< "${JSON}" &>/dev/null || fail "The global artifacts sums data is not proper JSON:\n${JSON}"
+
 echo -n "${JSON}"
