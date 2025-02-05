@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euo pipefail
+. /.functions
+
+# List the artifacts or directories in the given URL
+URL="${DEPL_URL}/global-sums"
+
+wait-for-artifacts &>/dev/null || fail "Timed out waiting for the artifacts to become available at [${DEPL_URL}]"
+
+JSON="$(curl -fsSL "${URL}")" || fail "Failed to retrieve the global artifact sums (rc = ${?})"
+
+echo -n "${JSON}"
