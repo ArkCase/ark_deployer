@@ -88,13 +88,15 @@ COPY --chown=root:root \
     "list-categories" \
     "entrypoint" \
     "deploy-artifact" \
+    "get-global-sums" \
     "/usr/local/bin/"
 RUN chmod a=rx \
         "/usr/local/bin/wait-for-artifacts" \
         "/usr/local/bin/list-artifacts" \
         "/usr/local/bin/list-categories" \
         "/usr/local/bin/entrypoint" \
-        "/usr/local/bin/deploy-artifact"
+        "/usr/local/bin/deploy-artifact" \
+        "/usr/local/bin/get-global-sums"
 
 ENV DEPL_URL="https://app-artifacts"
 
