@@ -10,44 +10,4 @@ usage()
 
 [ ${#} -le 1 ] || usage
 
-TARGET_PATH="${1:-""}"
-
-# Remove leading and trailing slashes
-[[ "${TARGET_PATH}" =~ ^/*(.*[^/])/*$ ]] && TARGET_PATH="${BASH_REMATCH[1]}"
-
-# Replace consecutive slashes
-TARGET_PATH="$(echo -n "${TARGET_PATH}" | sed -e 's;/+;/;g')"
-
-# URL-escape all path components
-IFS="/" read -a PARTS <<< "${TARGET_PATH}"
-TARGET_PATH=""
-for P in "${PARTS[@]}" ; do
-    [ -z "${TARGET_PATH}" ] || TARGET_PATH+="/"
-    TARGET_PATH+="$(echo -n "${P}" | jq -sRr @uri)"
-done
-
-wait-for-artifacts &>/dev/null || fail "Timed out waiting for the artifacts to become available at [${DEPL_URL}]"
-
-# List the artifacts or directories in the given URL
-URL="${DEPL_URL}/api/1/${TARGET_PATH}"
-
-JSON="$(curl -L -s "${URL}?cmd=list")"
-
-# Is the request successful?
-STATUS="$(jq -r .rc <<< "${JSON}")"
-
-# If the directory isn't found, just quit without output
-[ ${STATUS} == 404 ] && exit 0
-
-# If it's something else, then explode loudly while reporting the issue
-[ ${STATUS} == 200 ] || fail "Failed to list the contents of [${TARGET_PATH}] (STATUS=${STATUS}):\n${JSON}"
-
-# List the files contained within, including the path prefix
-[ -n "${TARGET_PATH}" ] && TARGET_PATH="/${TARGET_PATH}"
-jq -r ".data.directories[] | .name" <<< "${JSON}" | \
-	sed \
-		-e '/^\.\.$/d' \
-		-e '/\.sum$/d' \
-		-e '/\.ver$/d' \
-		-e "s;^;${TARGET_PATH}/;g" | \
-	sort -u
+exec list-elements category "${@}"

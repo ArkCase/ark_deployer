@@ -12,7 +12,7 @@
 ARG PUBLIC_REGISTRY="public.ecr.aws"
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.4.1"
+ARG VER="1.4.2"
 
 ARG BASE_REGISTRY="${PUBLIC_REGISTRY}"
 ARG BASE_REPO="arkcase/base"
@@ -84,6 +84,7 @@ RUN yum -y install \
 
 COPY --chown=root:root \
     "wait-for-artifacts" \
+    "list-elements" \
     "list-artifacts" \
     "list-categories" \
     "entrypoint" \
@@ -92,6 +93,7 @@ COPY --chown=root:root \
     "/usr/local/bin/"
 RUN chmod a=rx \
         "/usr/local/bin/wait-for-artifacts" \
+        "/usr/local/bin/list-elements" \
         "/usr/local/bin/list-artifacts" \
         "/usr/local/bin/list-categories" \
         "/usr/local/bin/entrypoint" \

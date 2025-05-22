@@ -1,0 +1,60 @@
+#!/bin/bash
+set -euo pipefail
+. /.functions
+
+usage()
+{
+	echo -e "usage: ${BASH_SOURCE:-${0}} (artifact|category) [path]" 1>&2
+	exit 1
+}
+
+[ ${#} -ge 1 ] || usage
+[ ${#} -le 2 ] || usage
+
+TYPE="${1}"
+case "${TYPE,,}" in
+	artifact ) JSON_ELEMENT="files" ;;
+	category ) JSON_ELEMENT="directories" ;;
+	* ) usage ;;
+esac
+TARGET_PATH="${2:-""}"
+
+# Remove leading and trailing slashes
+[[ "${TARGET_PATH}" =~ ^/*(.*[^/])/*$ ]] && TARGET_PATH="${BASH_REMATCH[1]}"
+
+# Replace consecutive slashes
+TARGET_PATH="$(echo -n "${TARGET_PATH}" | sed -e 's;/+;/;g')"
+
+# URL-escape all path components
+IFS="/" read -a PARTS <<< "${TARGET_PATH}"
+TARGET_PATH=""
+for P in "${PARTS[@]}" ; do
+	[ -z "${TARGET_PATH}" ] || TARGET_PATH+="/"
+	TARGET_PATH+="$(echo -n "${P}" | jq -sRr @uri)"
+done
+
+# List the artifacts or directories in the given URL
+URL="${DEPL_URL}/api/1/${TARGET_PATH}"
+
+wait-for-artifacts &>/dev/null || fail "Timed out waiting for the artifact server to become available at [${DEPL_URL}]"
+
+JSON="$(curl --retry-connrefused --retry-delay 3 --retry 10 -fsSL "${URL}?cmd=list")" || fail "Failed to fetch the ${TYPE} list at [${TARGET_PATH}]"
+
+# Is the request successful?
+STATUS="$(jq -r .rc <<< "${JSON}")"
+
+# If the directory isn't found, just quit without output
+[ ${STATUS} == 404 ] && exit 0
+
+# If it's something else, then explode loudly while reporting the issue
+[ ${STATUS} == 200 ] || fail "Failed to list the ${TYPE} elements at [${TARGET_PATH}] (STATUS=${STATUS}):\n${JSON}"
+
+# List the items contained within, including the path prefix
+[ -n "${TARGET_PATH}" ] && TARGET_PATH="/${TARGET_PATH}"
+jq -r ".data.${JSON_ELEMENT}[] | .name" <<< "${JSON}" | \
+	sed \
+		-e '/^\.\.$/d' \
+		-e '/\.sum$/d' \
+		-e '/\.ver$/d' \
+		-e "s;^;${TARGET_PATH}/;g" | \
+	sort -u

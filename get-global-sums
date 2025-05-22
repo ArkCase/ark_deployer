@@ -7,7 +7,7 @@ URL="${DEPL_URL}/global-sums"
 
 wait-for-artifacts &>/dev/null || fail "Timed out waiting for the artifacts to become available at [${DEPL_URL}]"
 
-JSON="$(curl -fsSL "${URL}")" || fail "Failed to retrieve the global artifact sums (rc = ${?})"
+JSON="$(curl --retry-connrefused --retry-delay 3 --retry 10 -fsSL "${URL}")" || fail "Failed to retrieve the global artifact sums (rc = ${?})"
 
 # Verify that it's JSON output
 jq -r <<< "${JSON}" &>/dev/null || fail "The global artifacts sums data is not proper JSON:\n${JSON}"
