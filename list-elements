@@ -2,6 +2,11 @@
 set -euo pipefail
 . /.functions
 
+cleanup()
+{
+	[ -v TEMPFILE ] && rm -rf "${TEMPFILE}" &>/dev/null
+}
+
 usage()
 {
 	echo -e "usage: ${BASH_SOURCE:-${0}} (artifact|category) [path]" 1>&2
@@ -38,20 +43,20 @@ URL="${DEPL_URL}/api/1/${TARGET_PATH}"
 
 wait-for-artifacts &>/dev/null || fail "Timed out waiting for the artifact server to become available at [${DEPL_URL}]"
 
-JSON="$(curl --retry-connrefused --retry-delay 3 --retry 10 -fsSL "${URL}?cmd=list")" || fail "Failed to fetch the ${TYPE} list at [${TARGET_PATH}]"
+TEMPFILE="$(mktemp --tmpdir)" || fail "Failed to create a temporary work file"
+trap cleanup EXIT
 
-# Is the request successful?
-STATUS="$(jq -r .rc <<< "${JSON}")"
+HTTP_CODE="$(curl --retry-connrefused --retry-delay 3 --retry 10 --output "${TEMPFILE}" -w "%{http_code}" -fsL "${URL}?cmd=list")" && STATUS="$(jq -r .rc < "${TEMPFILE}")" || STATUS="${HTTP_CODE}"
 
 # If the directory isn't found, just quit without output
 [ ${STATUS} == 404 ] && exit 0
 
 # If it's something else, then explode loudly while reporting the issue
-[ ${STATUS} == 200 ] || fail "Failed to list the ${TYPE} elements at [${TARGET_PATH}] (STATUS=${STATUS}):\n${JSON}"
+[ ${STATUS} == 200 ] || fail "Failed to list the ${TYPE} elements at [${TARGET_PATH}] (STATUS=${STATUS}):\n$(<"${TEMPFILE}")"
 
 # List the items contained within, including the path prefix
 [ -n "${TARGET_PATH}" ] && TARGET_PATH="/${TARGET_PATH}"
-jq -r ".data.${JSON_ELEMENT}[] | .name" <<< "${JSON}" | \
+jq -r ".data.${JSON_ELEMENT}[] | .name" < "${TEMPFILE}" | \
 	sed \
 		-e '/^\.\.$/d' \
 		-e '/\.sum$/d' \
