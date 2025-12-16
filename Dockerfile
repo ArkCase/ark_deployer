@@ -65,7 +65,7 @@ ENV PATH="${PATH}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
 RUN yum -y install \
         epel-release && \
     yum -y install \
-        java-11-openjdk-devel \
+        java-17-openjdk-devel \
         git \
         jq \
         openssl \
