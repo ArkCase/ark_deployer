@@ -47,6 +47,7 @@ ENV VER="${VER}"
 #
 RUN apt-get -y install \
         git \
+        python3-openpyxl \
         patch \
       && \
     apt-get clean
