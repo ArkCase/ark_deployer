@@ -78,7 +78,7 @@ ARTIFACT="${2}"
 [[ "${ARTIFACT}" =~ [^/]$ ]] || fail "The artifact name may not end in a slash: [${ARTIFACT}]"
 
 # Sanitize the artifact name (single slashes, remove leading slash)
-ARTIFACT="$(echo -n "${ARTIFACT}" | sed -e 's;/+;/;g' -e 's;^/;;g')"
+ARTIFACT="$(echo -n "${ARTIFACT}" | sed -e 's;/\+;/;g' -e 's;^/;;g')"
 
 # Pick the last component, which will be used locally
 ARTIFACT_NAME="${ARTIFACT##*/}"
@@ -122,6 +122,7 @@ grep -q '<!DOCTYPE html>' <<< "${NEW_VER}" && NEW_VER=""
 
 # By default, no checksum...
 SUM=""
+LOCAL_SUM="false"
 
 # If we're not forcing a local hash computation, we try to download the cached value
 as_boolean "${FORCE_HASHES}" || SUM="$(curl_get "${CHECKSUM_URL}" 2>/dev/null || true)"
@@ -132,6 +133,7 @@ if [[ ! "${SUM}" =~ ^[0-9a-f]{64}$ ]] ; then
 	download "${ARTIFACT_URL}" "${TARGET_TMP_FILE}"
 	read SUM REST < <(sha256sum "${TARGET_TMP_FILE}" | tr '[:upper:]' '[:lower:]')
 	[[ "${SUM}" =~ ^[0-9a-f]{64}$ ]] || fail "Failed to compute the sha256 checksum for [${ARTIFACT}]"
+	LOCAL_SUM="true"
 fi
 
 # Always the checksum in lowercase
@@ -153,7 +155,7 @@ if ! as_boolean "${FORCE_DEPLOY}" ; then
 		REST=""
 		# We use "|| true" at the end b/c if the output is empty then we have nothing to read
 		# and this will cause the script to exit
-		IFS="|" read OLD_DATE OLD_VER OLD_SUM OLD_ARTIFACT < <(sed -e '/^\s*#.*$/d' -e '/^\s*$/d' < "${MARKER_FILE}" | egrep "\|[0-9a-fA-F]{64}\|${ARTIFACT}$" | tail -1) || true
+		IFS="|" read OLD_DATE OLD_VER OLD_SUM OLD_ARTIFACT < <(sed -e '/^\s*#.*$/d' -e '/^\s*$/d' < "${MARKER_FILE}" | grep -P "\|[0-9a-fA-F]{64}\|\Q${ARTIFACT}\E$" | tail -1) || true
 		[ -n "${OLD_SUM}" ] && EXISTING_LOADED="true"
 		OLD_SUM="${OLD_SUM,,}"
 
@@ -177,21 +179,27 @@ fi
 # matches and all that (i.e. if we don't need to deploy, we avoid downloading)
 is_file "${TARGET_TMP_FILE}" || download "${ARTIFACT_URL}" "${TARGET_TMP_FILE}"
 
+# Check the checksum against the file, but only if we didn't compute it locally
+# because if we computed it locally it makes no sense to scan the file again.
+if ! as_boolean "${LOCAL_SUM}" ; then
+	echo "${SUM}  ${TARGET_TMP_FILE}" | sha256sum --check --status --ignore-missing || fail "Checksum validation failed for the artifact [${ARTIFACT}] - the downloaded checksum did not match the downloaded artifact"
+fi
+
 UPDATE_MARK_FILE=".deployed"
 MARK="$(date -u -Ins)|${NEW_VER}|${SUM}|${ARTIFACT}"
 case "${OPERATION,,}" in
 	extract )
-		[ -v EXTRACT_FLAGS ] || EXTRACT_FLAGS=()
-		unzip -o -d "${TARGET_DIR}" "${TARGET_TMP_FILE}" "${EXTRACT_FLAGS[@]}"
+		[ -v EXTRACT_FILES ] || EXTRACT_FILES=()
+		unzip -o -d "${TARGET_DIR}" "${TARGET_TMP_FILE}" "${EXTRACT_FILES[@]}"
 		UPDATE_MARK_FILE="${TARGET_DIR}/${UPDATE_MARK_FILE}"
 		;;
 
 	extractdir | extract-dir )
-		[ -v EXTRACT_DIR_FLAGS ] || EXTRACT_DIR_FLAGS=()
+		[ -v EXTRACT_DIR_FILES ] || EXTRACT_DIR_FILES=()
 		BASENAME="${ARTIFACT_NAME%.*}"
 		TARGET_DIR+="/${BASENAME}"
 		mkdir -p "${TARGET_DIR}"
-		unzip -o -d "${TARGET_DIR}" "${TARGET_TMP_FILE}" "${EXTRACT_DIR_FLAGS[@]}"
+		unzip -o -d "${TARGET_DIR}" "${TARGET_TMP_FILE}" "${EXTRACT_DIR_FILES[@]}"
 		UPDATE_MARK_FILE="${TARGET_DIR}/${UPDATE_MARK_FILE}"
 		;;
 

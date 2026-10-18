@@ -28,7 +28,7 @@ TARGET_PATH="${2:-""}"
 [[ "${TARGET_PATH}" =~ ^/*(.*[^/])/*$ ]] && TARGET_PATH="${BASH_REMATCH[1]}"
 
 # Replace consecutive slashes
-TARGET_PATH="$(echo -n "${TARGET_PATH}" | sed -e 's;/+;/;g')"
+TARGET_PATH="$(echo -n "${TARGET_PATH}" | sed -e 's;/\+;/;g')"
 
 # URL-escape all path components
 IFS="/" read -a PARTS <<< "${TARGET_PATH}"

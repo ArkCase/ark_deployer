@@ -6,7 +6,7 @@ set -euo pipefail
 # Override the existing implementation
 say()
 {
-	${QUIET} || echo -e "$(timestamp): ${@}"
+	as_boolean "${QUIET}" || echo -e "$(timestamp): ${@}"
 }
 
 set_as_boolean QUIET
@@ -17,11 +17,12 @@ set_or_default WAIT_MAX
 START="$(date +%s)"
 say "Waiting for artifacts to come online at [${DEPL_URL}] (max wait is $(secs_to_timestr ${WAIT_MAX}))..."
 while true ; do
-	HTTP_CODE="$(curl --connect-timeout 0.1 -kL -s -o /dev/null -w "%{http_code}" "${DEPL_URL}/api/1/?cmd=list")" || true
+	HTTP_CODE="$(curl --retry 0 --connect-timeout 5 --max-time 5 -kL -s -o /dev/null -w "%{http_code}" "${DEPL_URL}/api/1/?cmd=list")" || HTTP_CODE="0"
 
 	# Make sure it's a real number, and make sure we don't puke out here
 	HTTP_CODE="$(( 10#${HTTP_CODE} ))" || true
 
+	# We disregard redirects b/c we instructed CURL to follow them
 	if [ ${HTTP_CODE} -ge 200 ] && [ ${HTTP_CODE} -lt 300 ] ; then
 		say "Artifacts are online!"
 		exit 0
