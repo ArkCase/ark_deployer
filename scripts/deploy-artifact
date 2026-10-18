@@ -190,17 +190,15 @@ UPDATE_MARK_FILE=".deployed"
 MARK="$(date -u -Ins)|${NEW_VER}|${SUM}|${ARTIFACT}"
 case "${OPERATION,,}" in
 	extract )
-		[ -v EXTRACT_FILES ] || EXTRACT_FILES=()
-		unzip -o -d "${TARGET_DIR}" "${TARGET_TMP_FILE}" "${EXTRACT_FILES[@]}"
+		unzip -o -d "${TARGET_DIR}" "${TARGET_TMP_FILE}"
 		UPDATE_MARK_FILE="${TARGET_DIR}/${UPDATE_MARK_FILE}"
 		;;
 
 	extractdir | extract-dir )
-		[ -v EXTRACT_DIR_FILES ] || EXTRACT_DIR_FILES=()
 		BASENAME="${ARTIFACT_NAME%.*}"
 		TARGET_DIR+="/${BASENAME}"
 		mkdir -p "${TARGET_DIR}"
-		unzip -o -d "${TARGET_DIR}" "${TARGET_TMP_FILE}" "${EXTRACT_DIR_FILES[@]}"
+		unzip -o -d "${TARGET_DIR}" "${TARGET_TMP_FILE}"
 		UPDATE_MARK_FILE="${TARGET_DIR}/${UPDATE_MARK_FILE}"
 		;;
 
