@@ -33,6 +33,9 @@ while true ; do
 	# In case this evaluates to 0, to avoid puking out here
 	DURATION=$(( NOW - START )) || true
 	[ ${DURATION} -lt ${WAIT_MAX} ] || break
+
+	# A refused connection fails immediately, so don't hammer the server
+	sleep 0.2 || break
 done
 say "Artifacts failed to come online after ${WAIT_MAX} seconds"
 exit 1
