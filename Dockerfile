@@ -46,18 +46,17 @@ ENV VER="${VER}"
 # We add all of this crap b/c it may come in handy later and it doesn't
 # weigh enough to be of true concern
 #
-RUN apt-get -y install \
+RUN --mount=type=bind,target=/src \
+    apt-get -y install \
         git \
         python3-openpyxl \
         patch \
       && \
-    apt-get clean
-
-COPY --chown=root:root --chmod=0555 entrypoint /
-COPY --chown=root:root --chmod=0555 scripts/* /usr/local/bin/
+    apt-get clean && \
+    install -o root -g root -m 0555 /src/entrypoint /usr/local/bin && \
+    ( tar --owner=root --group=root --mode=u=rwX,go=rX -cf - /src/scripts ) | tar --strip-components=2 -C /usr/local/bin -xvf -
 
 ENV DEPL_URL="https://app-artifacts"
 
 USER root
 WORKDIR "${DEPL_DIR}"
-ENTRYPOINT [ "/entrypoint" ]
