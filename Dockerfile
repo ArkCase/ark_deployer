@@ -54,7 +54,7 @@ RUN --mount=type=bind,target=/src \
       && \
     apt-get clean && \
     install -o root -g root -m 0555 /src/entrypoint /usr/local/bin && \
-    ( tar --owner=root --group=root --mode=u=rwX,go=rX -cf - /src/scripts ) | tar --strip-components=2 -C /usr/local/bin -xvf -
+    install -o root -g root -m 0555 -t /usr/local/bin /src/scripts/*
 
 ENV DEPL_URL="https://app-artifacts"
 
